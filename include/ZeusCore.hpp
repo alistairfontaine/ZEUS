@@ -7,6 +7,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <iostream>
+#include <fstream>
 
 namespace Zeus {
 
@@ -83,8 +84,100 @@ namespace Zeus {
             return actualDistance <= maxRangeKm;
         }
 
+        // --- PHASE 2: MATRIX-BASED GRAPH PATH SEARCH ROUTINE ---
+        // Dynamically identifies hops across intermediate nodes using range limitations
+        int calculate_shortest_path_hops(uint32_t srcId, uint32_t destId, double maxRangeKm) const {
+            if (clusterNodes.empty()) return -1;
+            if (srcId == destId) return 0;
+
+            size_t n = clusterNodes.size();
+            std::vector<int> distances(n, 1e9); // Infinite baseline tracking initialization
+            std::vector<bool> visited(n, false);
+
+            int srcIdx = -1, destIdx = -1;
+            for (size_t i = 0; i < n; ++i) {
+                if (clusterNodes[i].nodeId == srcId) srcIdx = i;
+                if (clusterNodes[i].nodeId == destId) destIdx = i;
+            }
+
+            if (srcIdx == -1 || destIdx == -1) return -1; // Target nodes missing from active array
+
+            distances[srcIdx] = 0;
+
+            for (size_t count = 0; count < n - 1; ++count) {
+                int u = -1;
+                int minDist = 1e9;
+
+                for (size_t i = 0; i < n; ++i) {
+                    if (!visited[i] && distances[i] < minDist) {
+                        minDist = distances[i];
+                        u = i;
+                    }
+                }
+
+                if (u == -1 || u == destIdx) break;
+                visited[u] = true;
+
+                for (size_t v = 0; v < n; ++v) {
+                    if (!visited[v]) {
+                        double distBetween = calculate_link_distance(clusterNodes[u], clusterNodes[v]);
+                        if (distBetween <= maxRangeKm && distances[u] + 1 < distances[v]) {
+                            distances[v] = distances[u] + 1;
+                        }
+                    }
+                }
+            }
+
+            return distances[destIdx] == 1e9 ? -1 : distances[destIdx];
+        }
+
+        // --- PHASE 2: CUSTOM .ZEUS BINARY STATE SERIALIZATION EXPORTER ---
+        void export_to_binary(const std::string& filename) const {
+            std::ofstream out(filename, std::ios::binary);
+            if (!out.is_open()) {
+                throw std::runtime_error("Failed to open file for binary mesh target output: " + filename);
+            }
+
+            const uint32_t MAGIC_HEADER = 0x5A455553; // "ZEUS" in hex ASCII
+            size_t nodeCount = clusterNodes.size();
+
+            out.write(reinterpret_cast<const char*>(&MAGIC_HEADER), sizeof(MAGIC_HEADER));
+            out.write(reinterpret_cast<const char*>(&nodeCount), sizeof(nodeCount));
+
+            if (nodeCount > 0) {
+                out.write(reinterpret_cast<const char*>(clusterNodes.data()), nodeCount * sizeof(NetworkNode));
+            }
+            std::cout << "[Exporter] Successfully saved planetary routing infrastructure map to: " << filename << "\n";
+        }
+
+        // --- PHASE 2: CUSTOM .ZEUS BINARY STATE DESCRIPTOR LOADER ---
+        void load_from_binary(const std::string& filename) {
+            std::ifstream in(filename, std::ios::binary);
+            if (!in.is_open()) {
+                throw std::runtime_error("Failed to open file for binary reading: " + filename);
+            }
+
+            const uint32_t MAGIC_HEADER = 0x5A455553;
+            uint32_t headerCheck = 0;
+            in.read(reinterpret_cast<char*>(&headerCheck), sizeof(headerCheck));
+
+            if (headerCheck != MAGIC_HEADER) {
+                throw std::runtime_error("Invalid or corrupted .zeus binary telemetry signature detected.");
+            }
+
+            size_t nodeCount = 0;
+            in.read(reinterpret_cast<char*>(&nodeCount), sizeof(nodeCount));
+
+            clusterNodes.resize(nodeCount);
+            if (nodeCount > 0) {
+                in.read(reinterpret_cast<char*>(clusterNodes.data()), nodeCount * sizeof(NetworkNode));
+            }
+            std::cout << "[Loader] Successfully restored planetary mesh routing node array view.\n";
+        }
+
         size_t get_active_nodes_count() const { return clusterNodes.size(); }
         void clear_routing_grid() { clusterNodes.clear(); }
+
     };
 }
 

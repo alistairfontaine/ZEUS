@@ -45,8 +45,41 @@ int main() {
     std::cout << " -> Dynamic Link State Assessment: "
               << (linkActive ? "ONLINE (Payload Delivery Verified)" : "OFFLINE (Link Range Exhausted)") << "\n";
 
-    std::cout << "\n[Metrics] Mesh Topology Tracking Summary:\n";
-    std::cout << " -> Active Registered Nodes: " << router.get_active_nodes_count() << " telemetry points live.\n";
+    // 4. Simulate an Extended Global Multi-Hop Relay Infrastructure Mesh network
+    std::cout << "\n[Mesh-Graph] Deploying intermediary orbit relay nodes to test network routing...\n";
 
-    return linkActive ? 0 : 1;
+    // Add an intermediate relay point out over Mutare
+    Zeus::NetworkNode mutareRelay{2002, -18.9647, 32.6261, 0.0, "mut_relay"};
+    // Add a remote destination node located down over Bulawayo
+    Zeus::NetworkNode bulawayoTerminal{1002, -20.1432, 28.5779, 1.35, "byo_terminal"};
+
+    router.register_node(mutareRelay);
+    router.register_node(bulawayoTerminal);
+
+    // Compute hop distances across localized mesh constraints (e.g., 350 KM max transceiver bounds)
+    const double REGIONAL_LINK_BOUND_KM = 350.0;
+    int hopsResult = router.calculate_shortest_path_hops(1001, 1002, REGIONAL_LINK_BOUND_KM);
+
+    std::cout << "[Results] Multi-hop Topology Computation Matrix:\n";
+    if (hopsResult != -1) {
+        std::cout << " -> Shortest Path calculated from HRE to BYO: " << hopsResult << " mesh network hops.\n";
+    } else {
+        std::cout << " -> Isolated Route Status: Terrestrial path blocked. Satellite relay sequence required.\n";
+    }
+
+    // 5. Run Phase 2 persistence tracking serialization test checks
+    std::cout << "\n[Serialization] Exporting planetary topology footprint to .zeus database...\n";
+    try {
+        router.export_to_binary("tests/planetary_mesh.zeus");
+
+        Zeus::MeshRouter recoveryRouter;
+        recoveryRouter.load_from_binary("tests/planetary_mesh.zeus");
+        std::cout << " -> Verified Network Points Restored: " << recoveryRouter.get_active_nodes_count() << " live telemetry tracks.\n";
+    } catch (const std::exception& e) {
+        std::cerr << " -> Serialization Persistence Fault: " << e.what() << "\n";
+        return 1;
+    }
+
+    return 0;
 }
+
