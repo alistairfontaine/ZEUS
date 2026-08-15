@@ -15,9 +15,9 @@ $$Y = R \cdot \cos(\phi) \cdot \sin(\lambda)$$
 $$Z = R \cdot \sin(\phi)$$
 
 ## 2. Dynamic Routing Matrix Primitives
-Instead of bouncing data down slow IP paths, link availability between moving nodes is checked using **Great-Circle Vector Projections**:
+Instead of bouncing data down slow IP paths, link availability between moving nodes is checked using **Great-Circle Vector Projections** derived from Haversine calculation frameworks:
 
 $$\Delta\sigma = \arccos\left(\sin(\phi_1)\sin(\phi_2) + \cos(\phi_1)\cos(\phi_2)\cos(\Delta\lambda)\right)$$
-$$\text{Distance} = R_{\text{earth}} \cdot \Delta\sigma$$
+$$\text{Distance} = R_{\text{average}} \cdot \Delta\sigma$$
 
-If the line-of-sight path vector is blocked by Earth's structural center block or moves out of radio range limits, the graph recalculates alternative paths instantly across satellite-to-satellite arrays, bypassing physical network blockades completely.
+If the line-of-sight path vector is blocked by Earth's structural center block or moves out of radio range limits, the graph engine drops the vector edge and processes alternative multi-hop node paths instantly across satellite-to-satellite arrays, bypassing physical network blockades completely.
