@@ -1,0 +1,17 @@
+# Compilation Executables
+bin/
+build/
+*.out
+*.o
+*.obj
+zeus-router
+
+# Local Editor Environments
+.vscode/
+.idea/
+*.swp
+*~
+
+# Native Cache Dumps
+tests/*.zeus
+tests/*.log
